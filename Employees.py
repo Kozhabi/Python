@@ -1,65 +1,46 @@
-import sys
-from typing import List
-from Entities import Department, Employee
-from Enumerates import Positions, Growth
+from abc import abstractmethod
+from enum import Enum
 from datetime import date
 
-def by_position(department: Department, position: Positions) -> List[Employee]:
-    result: List[Employee] = []
+class Employees:
+    def __init__(self, name: str, position: Position, salary: int, date: date):
+        self.name = name
+        self.position = position
+        self.salary = salary
+        self.date = date
+        self.active = True
+        self.department = None
+        self.growth = []
+        self.add_growth_list(position, Growth.HIRED)
 
-    for i in department.employees:
-        if i.position == position:
-            result.append(i)
+    @property
+    def position(self) -> Position:
+        return self.position
 
-    for j in department.department:
-        result.extend(by_position(j, position))
+    @property
+    def department(self):
+        return self.department
 
-    return result
+    @department.setter
+    def department(self, depart):
+        self.department = depart
 
-def by_salary(department: Department, begin: int, end: int) -> List[Employee]:
-    result: List[Employee] = []
-    if begin is None:
-        begin = 0
+    def change_position(self, new_position: Position, growth: Growth):
+        self.add_growth_list(new_position, growth)
+        self.position = new_position
+        if growth is Growth.FIRED:
+            self.active = False
 
-    if end is None:
-        end = sys.maxsize
+    @property
+    def history(self) -> List[Change]:
+        return self.growth
 
-    for i in department.employees:
-        if begin <= i.salary <= end:
-            result.append(i)
+    def fire(self):
+        self.active = False
 
-    for j in department.department:
-        result.extend(by_salary(j, begin, end))
-
-    return result
-
-
-if __name__ == "__main__":
-    Director = Employee('John', Positions.Director, 300000, date(2000, 9, 1))
-    company_1 = Department('BIG_COMPANY', Director)
-
-    pr1 = Employee('Jack', Positions.Programmer, 150000, date(2003, 8, 2))
-    dep1 = Department('Department_1', pr1)
-    empl1 = Employee('Ann', Positions.Secreter, 70000, date(2003, 9, 9))
-    dep1.hire(empl1)
-    company_1.add_department(dep1)
-
-    pr2 = Employee('Mary', Positions.Programmer, 150000, date(2004, 10, 12))
-    dep2 = Department('Department_2', pr2)
-    empl2 = Employee('Jane', Positions.Secreter, 80000, date(2006, 12, 4))
-    dep2.hire(empl2)
-    company_1.add_department(dep2)
-
-    Director2 = Employee('Sasha', Positions.Director, 2000000, date(2008, 12, 9))
-    company_2 = Department('small_COMPANY', Director)
-    
-    pr1 = Employee('Tom', Positions.Secreter, 190000, date(2009, 2, 1))
-    dep1 = Department('Department_1', pr1)
-    company_2.add_department(dep1)  
-    
-    empl2.change_position(Positions.Secreter, Growth.PROMOTED) 
-    
-    assert company_1 >= company_2
-    assert company_2 <= company_1
-    assert company_1 != company_2
-    assert company_1 == company_2
+    def add_growth_list(self, new_position: Position, growth: Growth):
+        if growth is Growth.HIRED:
+            history = Change(self.date, new_position, growth, self.name, ' was ', growth.value)
+        else:
+            history = Change(date.today(), new_position, growth, self.name,' was ', growth.value + (' from ', self.position.value, 'to ', new_position.value if new_position is not None else ''))
+        self.growth.append(history)
